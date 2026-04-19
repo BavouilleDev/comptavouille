@@ -1,0 +1,19 @@
+rules_version = '2';
+// Copier-coller dans Firebase Console → Firestore → Règles → Publier,
+// ou : npm run deploy:rules (après firebase login).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Document profil
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /months/{monthId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

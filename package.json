@@ -1,0 +1,40 @@
+{
+  "name": "comptavouille",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes kill-port 8000 4173 4174 5173 && vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "npx --yes kill-port 4173 4174 && vite preview",
+    "preview:live": "npx --yes kill-port 4173 4174 && vite preview --host --port 4173 --strictPort",
+    "preview:restart": "npm run build && npm run preview:live",
+    "deploy:rules": "npx --yes firebase-tools@13.35.1 deploy --only firestore:rules",
+    "rules": "npm run deploy:rules"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.10",
+    "firebase": "^12.12.0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.8.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.14.1",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "vite": "^5.4.11"
+  }
+}
