@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAppData } from '../providers/useAppData'
 
 function GoogleIcon({ className }) {
@@ -25,12 +26,33 @@ function GoogleIcon({ className }) {
 }
 
 export function AuthScreen() {
-  const { signInWithGoogle } = useAppData()
+  const { signInWithGoogle, signInWithGoogleRedirect, authLoading, sessionUser } =
+    useAppData()
+  const [searchParams] = useSearchParams()
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
+  const redirectStarted = useRef(false)
+
+  const isRedirectTab = searchParams.get('auth') === 'redirect'
+
+  useEffect(() => {
+    if (!isRedirectTab) return
+    if (authLoading || sessionUser) return
+    if (redirectStarted.current) return
+    redirectStarted.current = true
+    setBusy(true)
+    setError('')
+    void signInWithGoogleRedirect().catch((err) => {
+      redirectStarted.current = false
+      setBusy(false)
+      setError(err?.message ?? 'Impossible de lancer la connexion.')
+    })
+  }, [isRedirectTab, authLoading, sessionUser, signInWithGoogleRedirect])
 
   async function onGoogleClick() {
     setError('')
+    setInfo('')
     setBusy(true)
     try {
       await signInWithGoogle()
@@ -38,10 +60,8 @@ export function AuthScreen() {
       const code = err?.code
       if (code === 'auth/popup-closed-by-user') {
         setError('Connexion annulée.')
-      } else if (code === 'auth/popup-blocked-by-browser') {
-        setError(
-          'La fenêtre Google a été bloquée. Autorise les pop-ups pour ce site.',
-        )
+      } else if (code === 'auth/opened-new-tab') {
+        setInfo(err.message)
       } else if (code === 'auth/unauthorized-domain') {
         setError(
           'Ce domaine n’est pas autorisé pour Google. Ajoute-le dans Firebase → Authentication → Paramètres → Domaines autorisés.',
@@ -76,14 +96,30 @@ export function AuthScreen() {
           </p>
         ) : null}
 
+        {info ? (
+          <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-100">
+            {info}
+          </p>
+        ) : null}
+
+        {isRedirectTab && busy && !error ? (
+          <p className="mb-4 text-center text-sm text-zinc-600 dark:text-zinc-400">
+            Redirection vers Google…
+          </p>
+        ) : null}
+
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || isRedirectTab}
           onClick={() => void onGoogleClick()}
           className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
         >
           <GoogleIcon className="h-5 w-5 shrink-0" />
-          {busy ? 'Ouverture de Google…' : 'Continuer avec Google'}
+          {busy && isRedirectTab
+            ? 'Connexion…'
+            : busy
+              ? 'Ouverture de Google…'
+              : 'Continuer avec Google'}
         </button>
       </div>
     </div>

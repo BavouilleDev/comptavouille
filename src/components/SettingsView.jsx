@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import { Download, Moon, Sun, Trash2 } from 'lucide-react'
 import { useAppData } from '../providers/useAppData'
 import { rowsToCsv, downloadTextFile } from '../lib/csv'
 import { compareMonthKeys, formatMonthLabelFr } from '../lib/months'
-import { effectiveMonthTaxPercentage } from '../lib/monthTax'
-import { sumSources } from '../lib/money'
+import {
+  effectiveMonthTaxPercentage,
+  sanitizeTaxRateInput,
+} from '../lib/monthTax'
+import { formatDecimal2ForCsv, sumSources } from '../lib/money'
 import { nukeUserAccount } from '../lib/accountActions'
 
 function buildCsvRows(monthsById, profile) {
@@ -30,7 +33,16 @@ function buildCsvRows(monthsById, profile) {
     const labelFr = formatMonthLabelFr(key)
     const declared = m?.isDeclared ? 'yes' : 'no'
     if (sources.length === 0) {
-      rows.push([key, labelFr, declared, '', '', String(total), String(urssaf), String(tax)])
+      rows.push([
+        key,
+        labelFr,
+        declared,
+        '',
+        '',
+        formatDecimal2ForCsv(total),
+        formatDecimal2ForCsv(urssaf),
+        String(tax),
+      ])
       continue
     }
     for (const s of sources) {
@@ -39,9 +51,9 @@ function buildCsvRows(monthsById, profile) {
         labelFr,
         declared,
         s.label ?? '',
-        String(s.amount ?? 0),
-        String(total),
-        String(urssaf),
+        formatDecimal2ForCsv(s.amount ?? 0),
+        formatDecimal2ForCsv(total),
+        formatDecimal2ForCsv(urssaf),
         String(tax),
       ])
     }
@@ -100,9 +112,11 @@ function ProfileBasicsCard({
         Pourcentage (%)
       </label>
       <input
+        inputMode="decimal"
+        autoComplete="off"
         value={taxInput}
-        onChange={(e) => setTaxInput(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-zinc-400/30 focus:ring-4 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+        onChange={(e) => setTaxInput(sanitizeTaxRateInput(e.target.value))}
+        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-zinc-400/30 focus-visible:ring-4 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
       />
 
       <label className="mt-4 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
@@ -112,7 +126,7 @@ function ProfileBasicsCard({
         value={sourcesText}
         onChange={(e) => setSourcesText(e.target.value)}
         rows={6}
-        className="mt-1 w-full resize-y rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-zinc-400/30 focus:ring-4 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+        className="mt-1 w-full resize-y rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-zinc-400/30 focus-visible:ring-4 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
       />
 
       <button
@@ -141,8 +155,24 @@ export function SettingsView() {
   const [message, setMessage] = useState('')
   const [nukeOpen, setNukeOpen] = useState(false)
   const [nukeConfirm, setNukeConfirm] = useState('')
+  /** 0 = délai écoulé, sinon secondes restantes avant d’activer le bouton de suppression. */
+  const [nukeCooldownLeft, setNukeCooldownLeft] = useState(0)
+
+  useEffect(() => {
+    if (!nukeOpen) return undefined
+    const id = window.setInterval(() => {
+      setNukeCooldownLeft((n) => (n <= 0 ? 0 : n - 1))
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [nukeOpen])
 
   const profileBasicsKey = `${profile?.taxPercentage ?? ''}|${(profile?.defaultRevenueSources ?? []).join('¦')}`
+
+  function closeNukeDialog() {
+    setNukeOpen(false)
+    setNukeConfirm('')
+    setNukeCooldownLeft(0)
+  }
 
   async function setTheme(next) {
     setMessage('')
@@ -176,10 +206,12 @@ export function SettingsView() {
       }
     } finally {
       setBusy(false)
-      setNukeOpen(false)
-      setNukeConfirm('')
+      closeNukeDialog()
     }
   }
+
+  const nukeButtonEnabled =
+    !busy && nukeCooldownLeft === 0 && nukeConfirm === 'DELETE'
 
   const theme = profile?.theme === 'light' ? 'light' : 'dark'
 
@@ -213,9 +245,6 @@ export function SettingsView() {
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
               Apparence
             </h3>
-            <p className="mt-1 text-xs text-zinc-500">
-              Stocké dans Firestore et appliqué automatiquement.
-            </p>
 
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button
@@ -269,53 +298,76 @@ export function SettingsView() {
               Zone dangereuse
             </h3>
             <p className="mt-1 text-xs text-red-900/80 dark:text-red-200/80">
-              Supprime les documents du mois, le profil Firestore, et le compte
-              d’authentification.
+              Supprime toutes vos données. Attention, y&apos;a aucun moyen de les
+              retrouver.
             </p>
             <button
               type="button"
-              onClick={() => setNukeOpen(true)}
+              onClick={() => {
+                setNukeConfirm('')
+                setNukeCooldownLeft(5)
+                setNukeOpen(true)
+              }}
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-red-700"
             >
               <Trash2 className="h-4 w-4" aria-hidden />
-              Nuke Account
+              Supprimer le compte
             </button>
           </div>
         </div>
       </div>
 
-      <Dialog open={nukeOpen} onClose={() => setNukeOpen(false)} className="relative z-50">
-        <DialogBackdrop className="fixed inset-0 bg-zinc-950/70 backdrop-blur-sm" />
+      <Dialog
+        open={nukeOpen}
+        onClose={closeNukeDialog}
+        transition
+        className="relative z-50"
+      >
+        <DialogBackdrop
+          transition
+          className="fixed inset-0 bg-zinc-950/70 backdrop-blur-sm transition duration-200 ease-out data-[closed]:opacity-0"
+        />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
+          <DialogPanel
+            transition
+            className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl transition duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] data-[closed]:translate-y-3 data-[closed]:scale-[0.97] data-[closed]:opacity-0 dark:border-zinc-800 dark:bg-zinc-950"
+          >
             <DialogTitle className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
               Confirmer la suppression définitive
             </DialogTitle>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-              Tapez <span className="font-mono font-semibold">DELETE</span> pour confirmer.
+              Attendez <span className="font-medium text-zinc-800 dark:text-zinc-200">5 secondes</span>, puis
+              tapez <span className="font-mono font-semibold">DELETE</span> pour activer le bouton rouge.
               Cette action est irréversible.
             </p>
             <input
               value={nukeConfirm}
               onChange={(e) => setNukeConfirm(e.target.value)}
-              className="mt-4 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-zinc-400/30 focus:ring-4 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+              className="mt-4 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-zinc-400/30 focus-visible:ring-4 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
               autoComplete="off"
             />
+            {nukeCooldownLeft > 0 ? (
+              <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400/90">
+                Délai de sécurité : encore {nukeCooldownLeft} s avant de pouvoir confirmer.
+              </p>
+            ) : null}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setNukeOpen(false)}
+                onClick={closeNukeDialog}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
               >
                 Annuler
               </button>
               <button
                 type="button"
-                disabled={busy || nukeConfirm !== 'DELETE'}
+                disabled={!nukeButtonEnabled}
                 onClick={nuke}
-                className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-w-[10.5rem] rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Supprimer tout
+                {nukeCooldownLeft > 0
+                  ? `Attendre (${nukeCooldownLeft} s)`
+                  : 'Supprimer tout'}
               </button>
             </div>
           </DialogPanel>

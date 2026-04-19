@@ -1,3 +1,5 @@
+export { sanitizeDecimalInput as sanitizeTaxRateInput } from './decimalInput.js'
+
 /** Taux par défaut issu du profil (réglages). */
 export function defaultTaxPercentage(profile) {
   const n = Number(profile?.taxPercentage)

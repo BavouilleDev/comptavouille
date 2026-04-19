@@ -4,6 +4,7 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
 } from 'firebase/auth'
 import {
@@ -19,6 +20,16 @@ import { auth, db, firebaseReady } from '../firebase'
 import { clampTaxPercentage, defaultTaxPercentage } from '../lib/monthTax'
 import { defaultSourcesFromProfile } from '../lib/userDefaults'
 import { AppDataContext } from './appDataContext'
+
+/** URL `/login?auth=redirect` (respecte `import.meta.env.BASE_URL`). */
+function loginRedirectTabUrl() {
+  const raw = import.meta.env.BASE_URL ?? '/'
+  const base = raw.endsWith('/') ? raw.slice(0, -1) : raw
+  const loginPath = !base || base === '' ? '/login' : `${base}/login`
+  const u = new URL(loginPath, window.location.origin)
+  u.searchParams.set('auth', 'redirect')
+  return u.href
+}
 
 async function ensureUserDocument(user) {
   if (!db || !user) return
@@ -142,9 +153,31 @@ export function AppDataProvider({ children }) {
     return p
   }, [])
 
+  const signInWithGoogleRedirect = useCallback(async () => {
+    if (!auth) throw new Error('Firebase is not configured')
+    await signInWithRedirect(auth, googleProvider)
+  }, [googleProvider])
+
   const signInWithGoogle = useCallback(async () => {
     if (!auth) throw new Error('Firebase is not configured')
-    await signInWithPopup(auth, googleProvider)
+    try {
+      await signInWithPopup(auth, googleProvider)
+    } catch (e) {
+      if (e?.code === 'auth/popup-blocked-by-browser') {
+        const w = window.open(loginRedirectTabUrl(), '_blank', 'noopener,noreferrer')
+        if (w == null) {
+          throw new Error(
+            'Les pop-ups et les nouveaux onglets sont bloqués. Autorise-les pour ce site, ou utilise un autre navigateur.',
+          )
+        }
+        const err = new Error(
+          'Un nouvel onglet s’est ouvert : termine la connexion Google dans cet onglet, puis reviens ici.',
+        )
+        err.code = 'auth/opened-new-tab'
+        throw err
+      }
+      throw e
+    }
   }, [googleProvider])
 
   const signOut = useCallback(async () => {
@@ -246,6 +279,7 @@ export function AppDataProvider({ children }) {
       monthsById,
       firestorePermissionDenied,
       signInWithGoogle,
+      signInWithGoogleRedirect,
       signOut,
       updateUserProfile,
       setMonthDeclared,
@@ -263,6 +297,7 @@ export function AppDataProvider({ children }) {
       monthsById,
       firestorePermissionDenied,
       signInWithGoogle,
+      signInWithGoogleRedirect,
       signOut,
       updateUserProfile,
       setMonthDeclared,

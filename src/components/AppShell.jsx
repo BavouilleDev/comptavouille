@@ -46,6 +46,7 @@ export function AppShell({ active, onChange, children }) {
                     onClick={() => onChange(t.id)}
                     className={[
                       'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:ring-zinc-400/70 dark:focus-visible:ring-zinc-500/60',
                       selected
                         ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
                         : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800',
@@ -80,6 +81,7 @@ export function AppShell({ active, onChange, children }) {
                 onClick={() => onChange(t.id)}
                 className={[
                   'inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:ring-zinc-400/70 dark:focus-visible:ring-zinc-500/60',
                   selected
                     ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
                     : 'border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200',

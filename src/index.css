@@ -9,24 +9,55 @@
   body {
     @apply min-h-screen font-sans;
   }
+
+  /*
+   * Pas de contour navigateur au clic souris (:focus sans :focus-visible).
+   * Le focus clavier reste géré par :focus-visible (classes Tailwind focus-visible:* ou anneau boutons ci-dessous).
+   */
+  button:focus:not(:focus-visible),
+  a:focus:not(:focus-visible),
+  input:focus:not(:focus-visible),
+  select:focus:not(:focus-visible),
+  textarea:focus:not(:focus-visible),
+  summary:focus:not(:focus-visible),
+  [role='button']:focus:not(:focus-visible),
+  [role='menuitem']:focus:not(:focus-visible),
+  [role='menuitemcheckbox']:focus:not(:focus-visible),
+  [role='menuitemradio']:focus:not(:focus-visible),
+  [role='option']:focus:not(:focus-visible),
+  [role='tab']:focus:not(:focus-visible),
+  [role='radio']:focus:not(:focus-visible),
+  [role='checkbox']:focus:not(:focus-visible),
+  [role='switch']:focus:not(:focus-visible),
+  [role='combobox']:focus:not(:focus-visible),
+  [role='slider']:focus:not(:focus-visible),
+  [role='searchbox']:focus:not(:focus-visible),
+  [role='spinbutton']:focus:not(:focus-visible),
+  [role='textbox']:focus:not(:focus-visible),
+  [role='treeitem']:focus:not(:focus-visible),
+  [tabindex]:not([tabindex='-1']):focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Boutons : anneau au Tab seulement (souvent sans classe focus-visible dédiée). */
+  button:focus-visible {
+    @apply relative z-[1] outline-none ring-2 ring-zinc-400/70 ring-offset-2 ring-offset-zinc-50 dark:ring-zinc-500/60 dark:ring-offset-zinc-950;
+  }
+
+  /* Recharts : pas de halo blanc au focus / clic (outline navigateur + traits par défaut). */
+  .recharts-wrapper:focus,
+  .recharts-wrapper:focus-visible,
+  .recharts-pie:focus,
+  .recharts-pie:focus-visible,
+  .recharts-pie-sector:focus,
+  .recharts-pie-sector:focus-visible {
+    outline: none;
+  }
+
+  /* Tooltip (portail body, tabIndex -1) : certains navigateurs affichent encore un contour au clic. */
+  .recharts-tooltip-wrapper:focus,
+  .recharts-tooltip-wrapper:focus-visible {
+    outline: none;
+  }
 }
 
-@keyframes live-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 1px rgb(239 68 68 / 0.35),
-      0 0 20px rgb(239 68 68 / 0.25);
-  }
-  50% {
-    box-shadow:
-      0 0 0 1px rgb(239 68 68 / 0.55),
-      0 0 32px rgb(239 68 68 / 0.45);
-  }
-}
-
-@layer utilities {
-  .live-row {
-    animation: live-pulse 2s ease-in-out infinite;
-  }
-}

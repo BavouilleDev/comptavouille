@@ -10,6 +10,13 @@ export function toMonthKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+/** @param {number} year année complète, @param {number} month 1–12 */
+export function monthKeyFromYearMonth(year, month) {
+  if (!Number.isInteger(year) || year < 1970 || year > 2100) return null
+  if (!Number.isInteger(month) || month < 1 || month > 12) return null
+  return toMonthKey(new Date(year, month - 1, 1))
+}
+
 export function currentMonthKey() {
   return toMonthKey(new Date())
 }
