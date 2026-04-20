@@ -1,0 +1,4 @@
+# Pages : publier le dossier dist après `npm run build` (voir dashboard Build output directory).
+name = "comptavouille"
+compatibility_date = "2025-01-15"
+pages_build_output_dir = "dist"
