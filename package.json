@@ -7,11 +7,12 @@
     "dev": "npx --yes kill-port 8000 4173 4174 5173 && vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "npx --yes kill-port 4173 4174 && vite preview",
+    "preview": "npm run build && wrangler dev",
     "preview:live": "npx --yes kill-port 4173 4174 && vite preview --host --port 4173 --strictPort",
     "preview:restart": "npm run build && npm run preview:live",
     "deploy:rules": "npx --yes firebase-tools@13.35.1 deploy --only firestore:rules",
-    "rules": "npm run deploy:rules"
+    "rules": "npm run deploy:rules",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
@@ -24,6 +25,7 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.32.3",
     "@eslint/js": "^9.39.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -35,6 +37,7 @@
     "globals": "^17.4.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "wrangler": "^4.83.0"
   }
 }
