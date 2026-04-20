@@ -12,9 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Secrets (Firebase, etc.)
-.env
-.env.*.local
 
 # Editor directories and files
 .vscode/*
