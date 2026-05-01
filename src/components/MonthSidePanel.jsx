@@ -174,41 +174,6 @@ function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5">
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm dark:border-red-900/40 dark:bg-red-950/25">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-red-900/80 dark:text-red-200/80">
-                Zone dangereuse
-              </p>
-              <p className="mt-1 text-sm font-semibold text-red-900 dark:text-red-100">
-                Supprimer ce mois
-              </p>
-              <p className="mt-2 text-xs text-red-900/80 dark:text-red-200/80">
-                Supprime toutes les données de ce mois (sources, taux du mois, déclaré).
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={async () => {
-                if (!monthKey) return
-                const ok = window.confirm(
-                  `Supprimer ${formatMonthLabelFr(monthKey)} ? Cette action est irréversible.`,
-                )
-                if (!ok) return
-                try {
-                  await deleteMonthDoc(monthKey)
-                  onClose(false)
-                } catch (e) {
-                  console.error('[month] deleteMonthDoc', e)
-                }
-              }}
-              className="shrink-0 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-red-700"
-            >
-              Supprimer
-            </button>
-          </div>
-        </div>
-
         <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <label
             htmlFor={`month-tax-${monthKey}`}
@@ -416,6 +381,41 @@ function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }
                 </PieChart>
               </ResponsiveContainer>
             )}
+          </div>
+        </div>
+
+        <div className="mt-10 rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm dark:border-red-900/40 dark:bg-red-950/25">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-red-900/80 dark:text-red-200/80">
+                Zone dangereuse
+              </p>
+              <p className="mt-1 text-sm font-semibold text-red-900 dark:text-red-100">
+                Supprimer ce mois
+              </p>
+              <p className="mt-2 text-xs text-red-900/80 dark:text-red-200/80">
+                Supprime toutes les données de ce mois (sources, taux du mois, déclaré).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!monthKey) return
+                const ok = window.confirm(
+                  `Supprimer ${formatMonthLabelFr(monthKey)} ? Cette action est irréversible.`,
+                )
+                if (!ok) return
+                try {
+                  await deleteMonthDoc(monthKey)
+                  onClose(false)
+                } catch (e) {
+                  console.error('[month] deleteMonthDoc', e)
+                }
+              }}
+              className="shrink-0 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-red-700"
+            >
+              Supprimer
+            </button>
           </div>
         </div>
       </div>
