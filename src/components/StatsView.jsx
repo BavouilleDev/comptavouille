@@ -11,7 +11,7 @@ import {
 import { useAppData } from '../providers/useAppData'
 import { compareMonthKeys, formatMonthLabelFr } from '../lib/months'
 import { effectiveMonthTaxPercentage } from '../lib/monthTax'
-import { formatCurrencyEUR, sumSources } from '../lib/money'
+import { formatCurrencyEUR, sumSources, sumTaxableSources } from '../lib/money'
 import { StatsStyleChartInfobox } from './StatsStyleChartInfobox'
 
 function RevenueChartTooltip({ active, payload, label }) {
@@ -57,9 +57,10 @@ export function StatsView() {
     for (const key of sortedKeys) {
       const doc = monthsById[key]
       const t = sumSources(doc?.sources)
+      const taxable = sumTaxableSources(doc?.sources)
       const rate = effectiveMonthTaxPercentage(doc, profile) / 100
       revenue += t
-      stolen += t * rate
+      stolen += taxable * rate
     }
     return { revenue, stolen }
   }, [monthsById, sortedKeys, profile])

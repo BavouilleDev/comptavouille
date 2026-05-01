@@ -13,6 +13,15 @@ export function sumSources(sources) {
   return sources.reduce((acc, s) => acc + (Number(s?.amount) || 0), 0)
 }
 
+/** Somme des montants imposables (sources avec `taxable !== false`). */
+export function sumTaxableSources(sources) {
+  if (!Array.isArray(sources)) return 0
+  return sources.reduce((acc, s) => {
+    if (s?.taxable === false) return acc
+    return acc + (Number(s?.amount) || 0)
+  }, 0)
+}
+
 export function formatCurrencyEUR(value) {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',

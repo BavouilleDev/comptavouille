@@ -22,6 +22,7 @@ import {
   formatPercentSigned,
   parseAmountInput,
   sumSources,
+  sumTaxableSources,
 } from '../lib/money'
 import { StatsStyleChartInfobox } from './StatsStyleChartInfobox'
 
@@ -58,11 +59,12 @@ function cloneSources(sources) {
     id: s.id,
     label: s.label ?? '',
     amount: Number(s.amount) || 0,
+    taxable: s?.taxable !== false,
   }))
 }
 
 function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }) {
-  const { monthsById, profile, saveMonthSources, saveMonthTaxPercentage } =
+  const { monthsById, profile, saveMonthSources, saveMonthTaxPercentage, deleteMonthDoc } =
     useAppData()
   const [draftSources, setDraftSources] = useState(() => cloneSources(initialSources))
 
@@ -86,6 +88,7 @@ function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }
   }, [taxInput, monthDoc, profile])
 
   const total = useMemo(() => sumSources(draftSources), [draftSources])
+  const taxableTotal = useMemo(() => sumTaxableSources(draftSources), [draftSources])
 
   const pieData = useMemo(() => {
     return draftSources
@@ -110,6 +113,12 @@ function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }
     if (!monthKey) return
     setDraftSources(next)
     await saveMonthSources(monthKey, next)
+  }
+
+  function persistSourcesSoft(next) {
+    if (!monthKey) return
+    setDraftSources(next)
+    void saveMonthSources(monthKey, next)
   }
 
   async function onBlurPersist() {
@@ -150,7 +159,7 @@ function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }
             <span className="mx-2 text-zinc-400">·</span>
             Urssaf ({taxPreview} %) :{' '}
             <span className="font-medium text-red-600 dark:text-red-400">
-              {formatCurrencyEUR(total * (taxPreview / 100))}
+              {formatCurrencyEUR(taxableTotal * (taxPreview / 100))}
             </span>
           </p>
         </div>
@@ -165,7 +174,42 @@ function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm dark:border-red-900/40 dark:bg-red-950/25">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-red-900/80 dark:text-red-200/80">
+                Zone dangereuse
+              </p>
+              <p className="mt-1 text-sm font-semibold text-red-900 dark:text-red-100">
+                Supprimer ce mois
+              </p>
+              <p className="mt-2 text-xs text-red-900/80 dark:text-red-200/80">
+                Supprime toutes les données de ce mois (sources, taux du mois, déclaré).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!monthKey) return
+                const ok = window.confirm(
+                  `Supprimer ${formatMonthLabelFr(monthKey)} ? Cette action est irréversible.`,
+                )
+                if (!ok) return
+                try {
+                  await deleteMonthDoc(monthKey)
+                  onClose(false)
+                } catch (e) {
+                  console.error('[month] deleteMonthDoc', e)
+                }
+              }}
+              className="shrink-0 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-red-700"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <label
             htmlFor={`month-tax-${monthKey}`}
             className="text-xs font-medium uppercase tracking-wide text-zinc-500"
@@ -224,6 +268,7 @@ function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }
                     id,
                     label: 'Nouvelle source',
                     amount: 0,
+                    taxable: true,
                   },
                 ]
                 await persistSources(next)
@@ -291,6 +336,21 @@ function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }
                     onBlur={onBlurPersist}
                     className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm tabular-nums text-zinc-900 outline-none ring-zinc-400/30 focus-visible:ring-4 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
                   />
+                  <label className="mt-2 flex select-none items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={s.taxable === false}
+                      onChange={(e) => {
+                        const nonTaxable = e.target.checked
+                        const next = draftSources.map((row) =>
+                          row.id === s.id ? { ...row, taxable: !nonTaxable } : row,
+                        )
+                        persistSourcesSoft(next)
+                      }}
+                      className="h-4 w-4 rounded border-zinc-300 bg-white accent-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:accent-zinc-100"
+                    />
+                    Non imposable
+                  </label>
                 </div>
                 <div className="col-span-2 flex items-end justify-end sm:col-span-1">
                   <button
@@ -301,7 +361,7 @@ function MonthSidePanelBody({ monthKey, initialSources, sortedKeysAsc, onClose }
                         const id = crypto.randomUUID()
                         setLatestAddedId(id)
                         await persistSources([
-                          { id, label: 'Source', amount: 0 },
+                          { id, label: 'Source', amount: 0, taxable: true },
                         ])
                       } else {
                         await persistSources(next)

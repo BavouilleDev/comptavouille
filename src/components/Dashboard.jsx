@@ -9,7 +9,12 @@ import {
   monthKeyFromYearMonth,
 } from '../lib/months'
 import { effectiveMonthTaxPercentage } from '../lib/monthTax'
-import { formatCurrencyEUR, formatPercentSigned, sumSources } from '../lib/money'
+import {
+  formatCurrencyEUR,
+  formatPercentSigned,
+  sumSources,
+  sumTaxableSources,
+} from '../lib/money'
 import { revenueGrowthPercentVsPrevMonth } from '../lib/revenueGrowth'
 import { MonthSidePanel } from './MonthSidePanel'
 
@@ -119,8 +124,9 @@ export function Dashboard() {
             const doc = monthsById[monthKey]
             const sources = Array.isArray(doc?.sources) ? doc.sources : []
             const total = doc ? sumSources(sources) : 0
+            const taxableTotal = doc ? sumTaxableSources(sources) : 0
             const rowTax = effectiveMonthTaxPercentage(doc, profile)
-            const stolen = total * (rowTax / 100)
+            const stolen = taxableTotal * (rowTax / 100)
             const net = total - stolen
             const declared = Boolean(doc?.isDeclared)
             const isLive = monthKey === nowKey

@@ -8,5 +8,6 @@ export function defaultSourcesFromProfile(profile) {
     id: crypto.randomUUID(),
     label: String(label),
     amount: 0,
+    taxable: true,
   }))
 }

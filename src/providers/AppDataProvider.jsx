@@ -10,6 +10,7 @@ import {
 import {
   collection,
   doc,
+  deleteDoc,
   getDoc,
   onSnapshot,
   serverTimestamp,
@@ -267,6 +268,16 @@ export function AppDataProvider({ children }) {
     [user],
   )
 
+  const deleteMonthDoc = useCallback(
+    async (monthKey) => {
+      const u = auth?.currentUser ?? user
+      if (!db || !u) throw new Error('Not signed in')
+      const ref = doc(db, 'users', u.uid, 'months', monthKey)
+      await deleteDoc(ref)
+    },
+    [user],
+  )
+
   const firestorePermissionDenied = profileRulesDenied || monthsRulesDenied
 
   const value = useMemo(
@@ -286,6 +297,7 @@ export function AppDataProvider({ children }) {
       saveMonthSources,
       saveMonthTaxPercentage,
       ensureMonthDoc,
+      deleteMonthDoc,
       db,
       auth,
     }),
@@ -304,6 +316,7 @@ export function AppDataProvider({ children }) {
       saveMonthSources,
       saveMonthTaxPercentage,
       ensureMonthDoc,
+      deleteMonthDoc,
     ],
   )
 
